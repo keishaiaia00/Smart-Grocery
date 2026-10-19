@@ -13,6 +13,21 @@ const App = {
 
     // Initial render
     UI.init();
+
+    // Listen for Cloud updates to re-render UI in real time
+    Storage.onChange((source) => {
+      if (source === 'cloud') {
+        if (UI.activeTab === 'tab-cart') {
+          UI.renderBudgetCard();
+          UI.renderCartList();
+        } else if (UI.activeTab === 'tab-history') {
+          UI.renderHistoryList();
+        } else if (UI.activeTab === 'tab-budget') {
+          UI.renderAnalytics();
+        }
+        if (typeof renderIcons === 'function') renderIcons();
+      }
+    });
   },
 
   /**

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test Firebase</title></head>
+<body>
+<h1>Testing Firebase Firestore</h1>
+<pre id="log"></pre>
+<script type="module">
+const logEl = document.getElementById('log');
+function log(msg) {
+  logEl.textContent += msg + '\n';
+  console.log(msg);
+}
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { 
+  initializeFirestore,
+  doc, 
+  getDoc, 
+  setDoc, 
+  onSnapshot 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBs3dsNs5EB9xIwID63tg4rMSElUUpXtE8",
+  authDomain: "smart-grocery-d5a97.firebaseapp.com",
+  projectId: "smart-grocery-d5a97",
+  storageBucket: "smart-grocery-d5a97.firebasestorage.app",
+  messagingSenderId: "852021544432",
+  appId: "1:852021544432:web:f0bb3c52040177aeae8935"
+};
+
+try {
+  log('1. Initializing App...');
+  const app = initializeApp(firebaseConfig);
+  log('2. Initializing Firestore without auth...');
+  const db = initializeFirestore(app, {
+    experimentalAutoDetectLongPolling: true
+  });
+  const docRef = doc(db, "smart_grocery", "shared_workspace");
+
+  log('3. Listening onSnapshot...');
+  onSnapshot(docRef, (snap) => {
+    log('onSnapshot fired! exists: ' + snap.exists() + ' data keys: ' + Object.keys(snap.data() || {}));
+    
+    // Now test write
+    log('4. Testing setDoc...');
+    setDoc(docRef, {
+      testTimestamp: new Date().toISOString(),
+      source: 'test_firebase_web'
+    }, { merge: true }).then(() => {
+      log('5. setDoc SUCCESS!');
+    }).catch(err => {
+      log('setDoc ERROR: ' + err.message);
+    });
+  }, (err) => {
+    log('onSnapshot ERROR: ' + err.message);
+  });
+} catch (e) {
+  log('Catch error: ' + e.message);
+}
+</script>
+</body>
+</html>

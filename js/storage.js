@@ -98,6 +98,60 @@ const SEED_ACTIVE_CART = [
 ];
 
 const Storage = {
+  _listeners: [],
+
+  onChange(cb) {
+    if (typeof cb === 'function') {
+      this._listeners.push(cb);
+    }
+  },
+
+  notifyChange(source = 'local') {
+    this._listeners.forEach(cb => {
+      try {
+        cb(source);
+      } catch (e) {
+        console.error('Storage onChange listener error:', e);
+      }
+    });
+  },
+
+  getAllData() {
+    return {
+      budget: this.getBudget(),
+      cart: this.getCart(),
+      catalog: this.getCatalog(),
+      history: this.getHistory()
+    };
+  },
+
+  applyCloudUpdate(cloudData) {
+    if (!cloudData || typeof cloudData !== 'object') return false;
+    let changed = false;
+
+    if (Array.isArray(cloudData.cart)) {
+      localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cloudData.cart));
+      changed = true;
+    }
+    if (cloudData.budget !== undefined && cloudData.budget !== null) {
+      localStorage.setItem(STORAGE_KEYS.BUDGET, String(cloudData.budget));
+      changed = true;
+    }
+    if (cloudData.catalog && typeof cloudData.catalog === 'object') {
+      localStorage.setItem(STORAGE_KEYS.CATALOG, JSON.stringify(cloudData.catalog));
+      changed = true;
+    }
+    if (Array.isArray(cloudData.history)) {
+      localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(cloudData.history));
+      changed = true;
+    }
+
+    if (changed) {
+      this.notifyChange('cloud');
+    }
+    return changed;
+  },
+
   // Initialize storage with seeds if first time
   init() {
     if (!localStorage.getItem(STORAGE_KEYS.CATALOG)) {
@@ -127,6 +181,7 @@ const Storage = {
 
   saveCart(cart) {
     localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cart));
+    this.notifyChange('local');
   },
 
   addItem(item) {
@@ -186,6 +241,7 @@ const Storage = {
   saveBudget(amount) {
     const val = Math.max(0, Number(amount) || 0);
     localStorage.setItem(STORAGE_KEYS.BUDGET, val.toString());
+    this.notifyChange('local');
     return val;
   },
 
@@ -228,6 +284,7 @@ const Storage = {
       updatedAt: new Date().toISOString()
     };
     localStorage.setItem(STORAGE_KEYS.CATALOG, JSON.stringify(catalog));
+    this.notifyChange('local');
   },
 
   // Shopping History Operations
@@ -305,6 +362,7 @@ const Storage = {
   deleteHistorySession(id) {
     const history = this.getHistory().filter(h => h.id !== id);
     localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history));
+    this.notifyChange('local');
     return history;
   },
 
@@ -326,6 +384,7 @@ const Storage = {
       if (parsed.budget) localStorage.setItem(STORAGE_KEYS.BUDGET, String(parsed.budget));
       if (parsed.catalog) localStorage.setItem(STORAGE_KEYS.CATALOG, JSON.stringify(parsed.catalog));
       if (parsed.history) localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(parsed.history));
+      this.notifyChange('local');
       return true;
     } catch (e) {
       console.error('Import failed', e);
@@ -338,6 +397,7 @@ const Storage = {
     localStorage.setItem(STORAGE_KEYS.BUDGET, '500000');
     localStorage.setItem(STORAGE_KEYS.CATALOG, JSON.stringify(SEED_CATALOG));
     localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(SEED_HISTORY));
+    this.notifyChange('local');
   }
 };
 

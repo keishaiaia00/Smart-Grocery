@@ -83,10 +83,22 @@ Smart-Grocery/
 ├── js/
 │   ├── icons.js          # Pustaka ikon Lucide SVG offline
 │   ├── calculator.js     # Engine perhitungan diskon bertingkat & fluktuasi
-│   ├── storage.js        # Manajemen database lokal & seed data anak rantau
+│   ├── storage.js        # Manajemen database lokal & hooks sinkronisasi
+│   ├── firebase.js       # Integrasi Firebase Cloud Firestore (1 Akun Bersama)
 │   ├── ui.js             # Render DOM komponen keranjang, badge, dan modal
 │   └── app.js            # Controller utama, event tab, dan PWA installer
 └── icons/
     ├── icon-192.svg      # Ikon aplikasi ukuran 192px
     └── icon-512.svg      # Ikon aplikasi ukuran 512px
 ```
+
+---
+
+## 🔥 Integrasi Firebase Cloud Firestore (1 User Shared)
+
+Aplikasi telah terhubung ke Firebase Cloud Firestore dengan model **1 User Bersama (Shared Workspace)**:
+- **Project ID:** `smart-grocery-d5a97`
+- **Koleksi & Dokumen:** `smart_grocery/shared_workspace`
+- **Konsep:** Siapapun yang membuka aplikasi di perangkat mana pun (laptop, HP 1, HP 2) akan langsung berbagi keranjang belanja, batas anggaran, dan riwayat yang sama secara **real-time** tanpa memerlukan formulir login.
+- **Penyelarasan Cerdas (Debounce & Anti-Loop):** Perubahan lokal disimpan seketika di peramban, lalu disinkronkan ke Cloud Firestore tanpa memicu lag atau pergeseran kursor.
+- **Indikator Status:** Terdapat tombol/indikator status di *header* aplikasi yang menampilkan status koneksi Firebase secara langsung (`1 User Synced`, `Menyimpan...`, atau `Mode Offline`).

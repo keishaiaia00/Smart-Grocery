@@ -1,5 +1,5 @@
 // Smart Grocery PWA Service Worker - Offline First Caching
-const CACHE_NAME = 'smart-grocery-v1';
+const CACHE_NAME = 'smart-grocery-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -9,6 +9,7 @@ const ASSETS_TO_CACHE = [
   './js/storage.js',
   './js/ui.js',
   './js/app.js',
+  './js/firebase.js',
   './manifest.webmanifest',
   './icons/icon-192.svg',
   './icons/icon-512.svg'
