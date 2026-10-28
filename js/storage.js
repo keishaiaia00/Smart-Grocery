@@ -201,8 +201,8 @@ const Storage = {
     if (!localStorage.getItem(STORAGE_KEYS.HISTORY)) {
       localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(SEED_HISTORY));
     }
-    if (!localStorage.getItem(STORAGE_KEYS.BUDGET)) {
-      localStorage.setItem(STORAGE_KEYS.BUDGET, '500000'); // Rp 500.000 default budget siswa rantau
+    if (!localStorage.getItem(STORAGE_KEYS.BUDGET) || localStorage.getItem(STORAGE_KEYS.BUDGET) === '500000') {
+      localStorage.setItem(STORAGE_KEYS.BUDGET, '350000'); // Rp 350.000 default target batas belanja
     }
     if (!localStorage.getItem(STORAGE_KEYS.CART)) {
       localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(SEED_ACTIVE_CART));
@@ -295,7 +295,7 @@ const Storage = {
   // Budget Cap / Wallet Limit Operations
   getBudget() {
     const b = localStorage.getItem(STORAGE_KEYS.BUDGET);
-    return b ? Number(b) : 500000;
+    return b ? Number(b) : 350000;
   },
 
   getWalletLimit() {
@@ -359,19 +359,6 @@ const Storage = {
 
   clearCart() {
     this.saveCart([]);
-  },
-
-  // Budget Cap Operations
-  getBudget() {
-    const b = localStorage.getItem(STORAGE_KEYS.BUDGET);
-    return b ? Number(b) : 500000;
-  },
-
-  saveBudget(amount) {
-    const val = Math.max(0, Number(amount) || 0);
-    localStorage.setItem(STORAGE_KEYS.BUDGET, val.toString());
-    this.notifyChange('local');
-    return val;
   },
 
   // Catalog / Autocomplete Database Operations
@@ -538,7 +525,7 @@ const Storage = {
 
   resetToDefault() {
     localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(SEED_ACTIVE_CART));
-    localStorage.setItem(STORAGE_KEYS.BUDGET, '500000');
+    localStorage.setItem(STORAGE_KEYS.BUDGET, '350000');
     localStorage.setItem(STORAGE_KEYS.CATALOG, JSON.stringify(SEED_CATALOG));
     localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(SEED_HISTORY));
     localStorage.setItem(STORAGE_KEYS.STORE_LOCATION, 'Superindo');
