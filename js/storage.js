@@ -549,3 +549,14 @@ const Storage = {
 
 // Auto initialize upon load
 Storage.init();
+
+// Expose explicitly as window.AppStorage to avoid collision with browser's native window.Storage API
+window.AppStorage = Storage;
+
+// Cross-tab and Cross-window realtime sync on the same computer (instant 0ms update)
+window.addEventListener('storage', (e) => {
+  if (e.key && Object.values(STORAGE_KEYS).includes(e.key)) {
+    console.log('[AppStorage] Cross-tab storage change detected on:', e.key);
+    Storage.notifyChange('cloud');
+  }
+});

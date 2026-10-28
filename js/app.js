@@ -15,22 +15,19 @@ const App = {
     // Initial render
     UI.init();
 
-    // Listen for Cloud updates to re-render UI in real time
-    Storage.onChange((source) => {
+    // Listen for Cloud and cross-tab updates to re-render UI in real time
+    const handleStorageChange = (source) => {
       if (source === 'cloud') {
-        if (UI.activeTab === 'tab-cart') {
-          UI.renderBudgetCard();
-          UI.renderSessionMeta();
-          UI.renderCartList();
-        } else if (UI.activeTab === 'tab-history') {
-          UI.renderHistoryList();
-        } else if (UI.activeTab === 'tab-budget') {
-          UI.renderAnalytics();
-        }
-        UI.updateBottomNavBadge();
-        if (typeof renderIcons === 'function') renderIcons();
+        console.log('[App] Realtime storage change triggered -> re-rendering UI');
+        UI.renderAll();
       }
-    });
+    };
+
+    if (window.AppStorage && typeof window.AppStorage.onChange === 'function') {
+      window.AppStorage.onChange(handleStorageChange);
+    } else if (typeof Storage !== 'undefined' && typeof Storage.onChange === 'function') {
+      Storage.onChange(handleStorageChange);
+    }
   },
 
   /**

@@ -28,7 +28,7 @@ const firebaseConfig = {
 const COLLECTION_NAME = "smart_grocery";
 const DOCUMENT_ID = "shared_workspace";
 
-// Generate unique ID per browser session / device to prevent echo loops
+// Generate unique ID per browser session / tab / device to prevent echo loops
 const CLIENT_ID = 'client-' + Math.random().toString(36).substring(2, 9);
 
 let app = null;
@@ -40,6 +40,19 @@ let pushTimeout = null;
 let lastPushedTimestamp = null;
 let isInitialLoad = true;
 
+/**
+ * Helper to reliably access AppStorage without colliding with native browser window.Storage class
+ */
+function getAppStorage() {
+  if (window.AppStorage && typeof window.AppStorage.getAllData === 'function') {
+    return window.AppStorage;
+  }
+  if (typeof Storage !== 'undefined' && typeof Storage.getAllData === 'function') {
+    return Storage;
+  }
+  return null;
+}
+
 const FirebaseSync = {
   status: 'connecting', // 'connecting' | 'online' | 'syncing' | 'offline' | 'error'
   statusMessage: 'Menghubungkan...',
@@ -47,6 +60,8 @@ const FirebaseSync = {
 
   init() {
     try {
+      console.log(`[Firebase] Initializing client ID: ${CLIENT_ID}`);
+
       // 1. Initialize Firebase App
       app = initializeApp(firebaseConfig);
 
@@ -73,13 +88,28 @@ const FirebaseSync = {
       // 4. Start REALTIME listener (onSnapshot). STRICTLY NO getDocs()/getDoc()
       this.subscribeToChanges();
 
-      // 5. Hook into local Storage mutations to push changes to Firestore
-      if (window.Storage && typeof window.Storage.onChange === 'function') {
-        window.Storage.onChange((source) => {
-          if (source === 'local') {
-            this.schedulePush();
+      // 5. Hook into local AppStorage mutations to push changes to Firestore
+      const hookStorage = () => {
+        const appStorage = getAppStorage();
+        if (appStorage && typeof appStorage.onChange === 'function') {
+          console.log('[Firebase] Successfully hooked to AppStorage.onChange!');
+          appStorage.onChange((source) => {
+            if (source === 'local') {
+              console.log('[Firebase] Local change detected -> scheduling push to Firestore');
+              this.schedulePush();
+            }
+          });
+          return true;
+        }
+        return false;
+      };
+
+      if (!hookStorage()) {
+        const retryTimer = setInterval(() => {
+          if (hookStorage()) {
+            clearInterval(retryTimer);
           }
-        });
+        }, 100);
       }
 
       // 6. Setup UI status element interaction
@@ -87,11 +117,13 @@ const FirebaseSync = {
 
       // 7. Network connectivity listeners for offline fallback & automatic reconnection
       window.addEventListener('online', () => {
+        console.log('[Firebase] Browser is online -> pushing any pending local changes');
         this.updateStatus('connecting', 'Menyambung kembali...');
         this.pushImmediate();
       });
 
       window.addEventListener('offline', () => {
+        console.log('[Firebase] Browser is offline');
         this.updateStatus('offline', 'Mode Offline (Lokal)');
       });
 
@@ -115,11 +147,11 @@ const FirebaseSync = {
 
     unsubscribeSnapshot = onSnapshot(docRef, (docSnap) => {
       if (!docSnap.exists()) {
-        // Document doesn't exist in Firestore yet: Seed it with local data
         console.log('[Firebase] Dokumen shared belum ada di Firestore. Melakukan seeding data awal...');
         this.updateStatus('syncing', 'Menyiapkan Cloud...');
         
-        const initialData = window.Storage ? window.Storage.getAllData() : null;
+        const appStorage = getAppStorage();
+        const initialData = appStorage ? appStorage.getAllData() : null;
         if (initialData) {
           const timestamp = new Date().toISOString();
           lastPushedTimestamp = timestamp;
@@ -143,7 +175,9 @@ const FirebaseSync = {
       const remoteData = docSnap.data();
       const isFromMe = (remoteData.clientId === CLIENT_ID && remoteData.lastUpdated === lastPushedTimestamp);
 
-      // Jika update berasal dari diri sendiri pada push terakhir, skip render ulang agar kursor tidak lompat
+      console.log(`[Firebase] onSnapshot fired. Remote clientId: ${remoteData.clientId}, my clientId: ${CLIENT_ID}, isFromMe: ${isFromMe}`);
+
+      // Jika update berasal dari diri sendiri pada push terakhir, skip re-render agar kursor tidak lompat
       if (isFromMe && !isInitialLoad) {
         this.lastSyncTime = new Date();
         this.updateStatus('online', 'Realtime Sync Aktif');
@@ -154,8 +188,16 @@ const FirebaseSync = {
       this.lastSyncTime = new Date();
 
       // Terapkan data cloud ke LocalStorage (sebagai fallback lokal) dan trigger re-render
-      if (window.Storage && typeof window.Storage.applyCloudUpdate === 'function') {
-        const hasChanged = window.Storage.applyCloudUpdate(remoteData);
+      const appStorage = getAppStorage();
+      if (appStorage && typeof appStorage.applyCloudUpdate === 'function') {
+        const hasChanged = appStorage.applyCloudUpdate(remoteData);
+        console.log('[Firebase] Cloud data applied to local storage. hasChanged =', hasChanged);
+        
+        // Re-render whole UI immediately
+        if (window.UI && typeof window.UI.renderAll === 'function') {
+          window.UI.renderAll();
+        }
+
         if (hasChanged && remoteData.clientId && remoteData.clientId !== CLIENT_ID) {
           if (window.UI && typeof window.UI.showToast === 'function') {
             window.UI.showToast('Keranjang diperbarui realtime dari perangkat lain 📱💻', 'refresh-cw');
@@ -180,7 +222,7 @@ const FirebaseSync = {
     }
     pushTimeout = setTimeout(() => {
       this.pushImmediate();
-    }, 300);
+    }, 250);
   },
 
   /**
@@ -188,7 +230,11 @@ const FirebaseSync = {
    * storeLocation, shoppingDate, walletLimit, items, totalSpent, totalSavings, catalog, history
    */
   async pushImmediate() {
-    if (!docRef || !window.Storage) return;
+    const appStorage = getAppStorage();
+    if (!docRef || !appStorage) {
+      console.warn('[Firebase] pushImmediate canceled: docRef or appStorage not ready');
+      return;
+    }
 
     if (!navigator.onLine) {
       this.updateStatus('offline', 'Mode Offline (Lokal)');
@@ -197,9 +243,11 @@ const FirebaseSync = {
 
     try {
       this.updateStatus('syncing', 'Menyimpan...');
-      const localData = window.Storage.getAllData();
+      const localData = appStorage.getAllData();
       const timestamp = new Date().toISOString();
       lastPushedTimestamp = timestamp;
+
+      console.log(`[Firebase] Pushing to Firestore (clientId: ${CLIENT_ID}, items: ${localData.items ? localData.items.length : 0})`);
 
       await setDoc(docRef, {
         storeLocation: localData.storeLocation,
@@ -218,6 +266,7 @@ const FirebaseSync = {
 
       this.lastSyncTime = new Date();
       this.updateStatus('online', 'Realtime Sync Aktif');
+      console.log('[Firebase] Push SUCCESSFUL!');
     } catch (err) {
       console.error('[Firebase] Push data error:', err);
       this.handleFirebaseError(err);
@@ -265,6 +314,7 @@ const FirebaseSync = {
         let info = `🔥 Firebase Firestore Realtime (Multi-Device Sync)\n\n`;
         info += `• Project ID: ${firebaseConfig.projectId}\n`;
         info += `• Koleksi/Dokumen: ${COLLECTION_NAME}/${DOCUMENT_ID}\n`;
+        info += `• Client ID Tab Ini: ${CLIENT_ID}\n`;
         info += `• Metode: onSnapshot() Live Listener (Bukan getDoc)\n`;
         info += `• Status: ${this.statusMessage}\n`;
         info += `• Terakhir Sinkron: ${lastSyncStr}\n`;
