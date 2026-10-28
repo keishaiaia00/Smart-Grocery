@@ -9,11 +9,26 @@ const UI = {
 
   renderAll() {
     this.renderBudgetCard();
+    this.renderSessionMeta();
     this.renderCartList();
     this.renderHistoryList();
     this.renderAnalytics();
     this.updateBottomNavBadge();
     renderIcons();
+  },
+
+  /**
+   * Render Store Location & Shopping Date
+   */
+  renderSessionMeta() {
+    const locInput = document.getElementById('inputStoreLocation');
+    const dateInput = document.getElementById('inputShoppingDate');
+    if (locInput && document.activeElement !== locInput) {
+      locInput.value = Storage.getStoreLocation();
+    }
+    if (dateInput && document.activeElement !== dateInput) {
+      dateInput.value = Storage.getShoppingDate();
+    }
   },
 
   /**

@@ -75,6 +75,19 @@
           <!-- Populated dynamically by UI.renderBudgetCard() -->
         </div>
 
+        <!-- [F-07] Active Shopping Trip Meta: Lokasi & Tanggal Belanja (Multi-Device Synced) -->
+        <div class="session-meta-strip" id="sessionMetaStrip">
+          <div class="session-meta-item">
+            <span class="session-meta-icon" data-icon="map-pin"></span>
+            <input type="text" id="inputStoreLocation" class="session-meta-input" placeholder="Supermarket / Toko" title="Lokasi Supermarket/Toko (Tersinkron Realtime)">
+          </div>
+          <div class="session-meta-divider"></div>
+          <div class="session-meta-item">
+            <span class="session-meta-icon" data-icon="calendar"></span>
+            <input type="date" id="inputShoppingDate" class="session-meta-input session-date-input" title="Tanggal Belanja (Tersinkron Realtime)">
+          </div>
+        </div>
+
         <!-- Quick Filter Categories -->
         <div class="cart-filter-bar" id="categoryFilterBar">
           <button class="chip-filter active" data-category="all">Semua</button>

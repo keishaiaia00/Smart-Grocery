@@ -6,6 +6,7 @@ const App = {
   init() {
     this.setupTabNavigation();
     this.setupCategoryFilters();
+    this.setupSessionMetaEvents();
     this.setupModalEvents();
     this.setupItemActionDelegation();
     this.setupPWA();
@@ -19,12 +20,14 @@ const App = {
       if (source === 'cloud') {
         if (UI.activeTab === 'tab-cart') {
           UI.renderBudgetCard();
+          UI.renderSessionMeta();
           UI.renderCartList();
         } else if (UI.activeTab === 'tab-history') {
           UI.renderHistoryList();
         } else if (UI.activeTab === 'tab-budget') {
           UI.renderAnalytics();
         }
+        UI.updateBottomNavBadge();
         if (typeof renderIcons === 'function') renderIcons();
       }
     });
@@ -86,6 +89,31 @@ const App = {
       UI.renderCartList();
       renderIcons();
     });
+  },
+
+  /**
+   * Realtime Event Handlers for Store Location & Date [F-07]
+   */
+  setupSessionMetaEvents() {
+    const locInput = document.getElementById('inputStoreLocation');
+    const dateInput = document.getElementById('inputShoppingDate');
+
+    if (locInput) {
+      locInput.value = Storage.getStoreLocation();
+      locInput.addEventListener('input', () => {
+        Storage.saveStoreLocation(locInput.value);
+      });
+      locInput.addEventListener('change', () => {
+        Storage.saveStoreLocation(locInput.value);
+      });
+    }
+
+    if (dateInput) {
+      dateInput.value = Storage.getShoppingDate();
+      dateInput.addEventListener('change', () => {
+        Storage.saveShoppingDate(dateInput.value);
+      });
+    }
   },
 
   /**
@@ -492,6 +520,9 @@ const App = {
 
     let textReceipt = `*🛒 STRUK BELANJA BULANAN KOS*\n`;
     textReceipt += `📌 ${session.title}\n`;
+    if (session.storeLocation) {
+      textReceipt += `🏬 Lokasi: ${session.storeLocation}\n`;
+    }
     textReceipt += `📅 Tanggal: ${dateFormatted}\n`;
     textReceipt += `--------------------------------\n`;
 

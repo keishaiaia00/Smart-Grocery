@@ -4,7 +4,9 @@ const STORAGE_KEYS = {
   BUDGET: 'smart_grocery_budget_cap',
   CATALOG: 'smart_grocery_price_catalog',
   HISTORY: 'smart_grocery_history_sessions',
-  SETTINGS: 'smart_grocery_settings'
+  SETTINGS: 'smart_grocery_settings',
+  STORE_LOCATION: 'smart_grocery_store_location',
+  SHOPPING_DATE: 'smart_grocery_shopping_date'
 };
 
 const SEED_CATALOG = {
@@ -117,9 +119,30 @@ const Storage = {
   },
 
   getAllData() {
+    const items = this.getCart();
+    let totalSpent = 0;
+    let totalSavings = 0;
+    items.forEach(item => {
+      if (typeof Calculator !== 'undefined' && typeof Calculator.calculateItemTotal === 'function') {
+        const c = Calculator.calculateItemTotal(item.qty, item.unitPrice, item.discount);
+        totalSpent += c.subtotal;
+        totalSavings += c.totalSaved;
+      } else {
+        totalSpent += Math.round((Number(item.qty) || 0) * (Number(item.unitPrice) || 0));
+      }
+    });
+
+    const budget = this.getBudget();
+
     return {
-      budget: this.getBudget(),
-      cart: this.getCart(),
+      storeLocation: this.getStoreLocation(),
+      shoppingDate: this.getShoppingDate(),
+      walletLimit: budget,
+      budget: budget,
+      items: items,
+      cart: items,
+      totalSpent: totalSpent,
+      totalSavings: totalSavings,
       catalog: this.getCatalog(),
       history: this.getHistory()
     };
@@ -129,14 +152,32 @@ const Storage = {
     if (!cloudData || typeof cloudData !== 'object') return false;
     let changed = false;
 
-    if (Array.isArray(cloudData.cart)) {
-      localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cloudData.cart));
+    // Support both storeLocation and shoppingDate
+    if (typeof cloudData.storeLocation === 'string') {
+      localStorage.setItem(STORAGE_KEYS.STORE_LOCATION, cloudData.storeLocation);
       changed = true;
     }
-    if (cloudData.budget !== undefined && cloudData.budget !== null) {
-      localStorage.setItem(STORAGE_KEYS.BUDGET, String(cloudData.budget));
+    if (typeof cloudData.shoppingDate === 'string') {
+      localStorage.setItem(STORAGE_KEYS.SHOPPING_DATE, cloudData.shoppingDate);
       changed = true;
     }
+
+    // Support both items and cart aliases
+    const remoteItems = Array.isArray(cloudData.items) ? cloudData.items : (Array.isArray(cloudData.cart) ? cloudData.cart : null);
+    if (remoteItems) {
+      localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(remoteItems));
+      changed = true;
+    }
+
+    // Support both walletLimit and budget aliases
+    const remoteLimit = cloudData.walletLimit !== undefined && cloudData.walletLimit !== null
+      ? cloudData.walletLimit
+      : (cloudData.budget !== undefined && cloudData.budget !== null ? cloudData.budget : null);
+    if (remoteLimit !== null) {
+      localStorage.setItem(STORAGE_KEYS.BUDGET, String(remoteLimit));
+      changed = true;
+    }
+
     if (cloudData.catalog && typeof cloudData.catalog === 'object') {
       localStorage.setItem(STORAGE_KEYS.CATALOG, JSON.stringify(cloudData.catalog));
       changed = true;
@@ -166,6 +207,13 @@ const Storage = {
     if (!localStorage.getItem(STORAGE_KEYS.CART)) {
       localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(SEED_ACTIVE_CART));
     }
+    if (!localStorage.getItem(STORAGE_KEYS.STORE_LOCATION)) {
+      localStorage.setItem(STORAGE_KEYS.STORE_LOCATION, 'Superindo');
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.SHOPPING_DATE)) {
+      const today = new Date().toISOString().split('T')[0];
+      localStorage.setItem(STORAGE_KEYS.SHOPPING_DATE, today);
+    }
   },
 
   // Active Cart Operations
@@ -179,9 +227,90 @@ const Storage = {
     }
   },
 
+  // Alias for getCart
+  getItems() {
+    return this.getCart();
+  },
+
   saveCart(cart) {
     localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cart));
     this.notifyChange('local');
+  },
+
+  // Alias for saveCart
+  saveItems(items) {
+    this.saveCart(items);
+  },
+
+  // Active Store Location & Shopping Date Operations
+  getStoreLocation() {
+    return localStorage.getItem(STORAGE_KEYS.STORE_LOCATION) || 'Superindo';
+  },
+
+  saveStoreLocation(location) {
+    const val = (location || '').trim() || 'Supermarket';
+    localStorage.setItem(STORAGE_KEYS.STORE_LOCATION, val);
+    this.notifyChange('local');
+    return val;
+  },
+
+  getShoppingDate() {
+    const today = new Date().toISOString().split('T')[0];
+    return localStorage.getItem(STORAGE_KEYS.SHOPPING_DATE) || today;
+  },
+
+  saveShoppingDate(dateStr) {
+    const val = (dateStr || '').trim() || new Date().toISOString().split('T')[0];
+    localStorage.setItem(STORAGE_KEYS.SHOPPING_DATE, val);
+    this.notifyChange('local');
+    return val;
+  },
+
+  getTotalSpent() {
+    const cart = this.getCart();
+    let total = 0;
+    cart.forEach(item => {
+      if (typeof Calculator !== 'undefined' && typeof Calculator.calculateItemTotal === 'function') {
+        const c = Calculator.calculateItemTotal(item.qty, item.unitPrice, item.discount);
+        total += c.subtotal;
+      } else {
+        total += Math.round((Number(item.qty) || 0) * (Number(item.unitPrice) || 0));
+      }
+    });
+    return total;
+  },
+
+  getTotalSavings() {
+    const cart = this.getCart();
+    let savings = 0;
+    cart.forEach(item => {
+      if (typeof Calculator !== 'undefined' && typeof Calculator.calculateItemTotal === 'function') {
+        const c = Calculator.calculateItemTotal(item.qty, item.unitPrice, item.discount);
+        savings += c.totalSaved;
+      }
+    });
+    return savings;
+  },
+
+  // Budget Cap / Wallet Limit Operations
+  getBudget() {
+    const b = localStorage.getItem(STORAGE_KEYS.BUDGET);
+    return b ? Number(b) : 500000;
+  },
+
+  getWalletLimit() {
+    return this.getBudget();
+  },
+
+  saveBudget(amount) {
+    const val = Math.max(0, Number(amount) || 0);
+    localStorage.setItem(STORAGE_KEYS.BUDGET, val.toString());
+    this.notifyChange('local');
+    return val;
+  },
+
+  saveWalletLimit(amount) {
+    return this.saveBudget(amount);
   },
 
   addItem(item) {
@@ -336,13 +465,18 @@ const Storage = {
     });
 
     const now = new Date();
-    const defaultTitle = `Belanja Bulanan - ${now.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`;
+    const storeLoc = this.getStoreLocation();
+    const shopDate = this.getShoppingDate();
+    const defaultTitle = `Belanja di ${storeLoc} - ${now.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`;
 
     const newSession = {
       id: 'hist-' + Date.now(),
       title: sessionTitle || defaultTitle,
+      storeLocation: storeLoc,
+      shoppingDate: shopDate,
       date: now.toISOString(),
       budgetCap: budget,
+      walletLimit: budget,
       totalSpent,
       totalSavings,
       itemCount: cart.length,
@@ -368,8 +502,14 @@ const Storage = {
 
   exportDataJSON() {
     const exportObj = {
-      cart: this.getCart(),
+      storeLocation: this.getStoreLocation(),
+      shoppingDate: this.getShoppingDate(),
+      walletLimit: this.getBudget(),
       budget: this.getBudget(),
+      items: this.getCart(),
+      cart: this.getCart(),
+      totalSpent: this.getTotalSpent(),
+      totalSavings: this.getTotalSavings(),
       catalog: this.getCatalog(),
       history: this.getHistory(),
       exportedAt: new Date().toISOString()
@@ -380,8 +520,12 @@ const Storage = {
   importDataJSON(jsonString) {
     try {
       const parsed = JSON.parse(jsonString);
-      if (parsed.cart) localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(parsed.cart));
-      if (parsed.budget) localStorage.setItem(STORAGE_KEYS.BUDGET, String(parsed.budget));
+      if (parsed.storeLocation) localStorage.setItem(STORAGE_KEYS.STORE_LOCATION, parsed.storeLocation);
+      if (parsed.shoppingDate) localStorage.setItem(STORAGE_KEYS.SHOPPING_DATE, parsed.shoppingDate);
+      if (parsed.items || parsed.cart) localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(parsed.items || parsed.cart));
+      if (parsed.walletLimit !== undefined || parsed.budget !== undefined) {
+        localStorage.setItem(STORAGE_KEYS.BUDGET, String(parsed.walletLimit !== undefined ? parsed.walletLimit : parsed.budget));
+      }
       if (parsed.catalog) localStorage.setItem(STORAGE_KEYS.CATALOG, JSON.stringify(parsed.catalog));
       if (parsed.history) localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(parsed.history));
       this.notifyChange('local');
@@ -397,6 +541,8 @@ const Storage = {
     localStorage.setItem(STORAGE_KEYS.BUDGET, '500000');
     localStorage.setItem(STORAGE_KEYS.CATALOG, JSON.stringify(SEED_CATALOG));
     localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(SEED_HISTORY));
+    localStorage.setItem(STORAGE_KEYS.STORE_LOCATION, 'Superindo');
+    localStorage.setItem(STORAGE_KEYS.SHOPPING_DATE, new Date().toISOString().split('T')[0]);
     this.notifyChange('local');
   }
 };
