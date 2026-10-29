@@ -1,12 +1,13 @@
 /* Smart Grocery & Budget Safety Tracker - Mobile PWA Design System */
+/* Theme: Aesthetic Soft Light Blue (Biru Muda Aesthetic) & Deep Navy Buttons (Biru Tua) */
 :root {
-  --primary: #059669;
-  --primary-hover: #047857;
-  --primary-light: #d1fae5;
-  --primary-glow: rgba(5, 150, 105, 0.25);
+  --primary: #1e3a8a;
+  --primary-hover: #172554;
+  --primary-light: #dbeafe;
+  --primary-glow: rgba(30, 58, 138, 0.25);
 
-  --accent: #2563eb;
-  --accent-light: #dbeafe;
+  --accent: #1d4ed8;
+  --accent-light: #eff6ff;
 
   --danger: #dc2626;
   --danger-light: #fee2e2;
@@ -15,17 +16,17 @@
   --warning: #d97706;
   --warning-light: #fef3c7;
 
-  --success: #16a34a;
-  --success-light: #dcfce7;
+  --success: #1e3a8a;
+  --success-light: #dbeafe;
 
   --bg-desktop: #0f172a;
-  --bg-phone: #f8fafc;
+  --bg-phone: #ebf4fc;
   --card-bg: #ffffff;
-  --border-color: #e2e8f0;
+  --border-color: #cfe2f5;
 
   --text-main: #0f172a;
-  --text-muted: #64748b;
-  --text-dim: #94a3b8;
+  --text-muted: #4b627e;
+  --text-dim: #8fa5c0;
 
   --radius-sm: 8px;
   --radius-md: 14px;
@@ -33,10 +34,10 @@
   --radius-xl: 28px;
   --radius-full: 9999px;
 
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
-  --shadow-float: 0 14px 28px rgba(0, 0, 0, 0.12), 0 10px 10px rgba(0, 0, 0, 0.06);
+  --shadow-sm: 0 1px 3px rgba(30, 58, 138, 0.05), 0 1px 2px rgba(30, 58, 138, 0.03);
+  --shadow-md: 0 4px 6px -1px rgba(30, 58, 138, 0.07), 0 2px 4px -2px rgba(30, 58, 138, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(30, 58, 138, 0.09), 0 4px 6px -4px rgba(30, 58, 138, 0.04);
+  --shadow-float: 0 14px 28px rgba(30, 58, 138, 0.12), 0 10px 10px rgba(30, 58, 138, 0.06);
 
   --safe-bottom: env(safe-area-inset-bottom, 16px);
 }
@@ -119,7 +120,7 @@ body {
 /* Main App Header */
 .app-header {
   padding: 12px 18px 8px 18px;
-  background: rgba(248, 250, 252, 0.95);
+  background: rgba(235, 244, 252, 0.95);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   z-index: 90;
@@ -143,7 +144,7 @@ body {
   width: 38px;
   height: 38px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  background: linear-gradient(135deg, #172554 0%, #1e3a8a 100%);
   color: white;
   display: flex;
   align-items: center;
@@ -478,7 +479,7 @@ body {
 }
 
 .bar-safe {
-  background: linear-gradient(90deg, #10b981, #059669);
+  background: linear-gradient(90deg, #60a5fa, #1e3a8a);
 }
 
 .bar-warning {
@@ -602,9 +603,9 @@ body {
 }
 
 .chip-filter.active {
-  background: var(--text-main);
+  background: var(--primary);
   color: white;
-  border-color: var(--text-main);
+  border-color: var(--primary);
 }
 
 /* Cart Items List */
@@ -934,7 +935,7 @@ body {
   width: 58px;
   height: 58px;
   border-radius: var(--radius-full);
-  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  background: linear-gradient(135deg, #172554 0%, #1e3a8a 100%);
   color: white;
   border: none;
   box-shadow: 0 8px 20px var(--primary-glow);
@@ -1400,14 +1401,14 @@ body {
 }
 
 .btn-history-action.primary {
-  background: var(--primary-light);
+  background: var(--primary);
   border-color: var(--primary);
-  color: var(--primary);
+  color: white;
 }
 
 /* Budget Analytics Tab [Tab Anggaran] */
 .analytics-hero {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  background: linear-gradient(135deg, #172554 0%, #1e3a8a 100%);
   color: white;
   border-radius: var(--radius-lg);
   padding: 18px;
